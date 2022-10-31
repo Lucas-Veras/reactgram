@@ -1,19 +1,86 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import userService from "../services/UserService";
 
-const initialState = {
-    user: {},
-    error: false,
-    success: false,
-    loading: false,
-    message: null,
+interface IUserIntialState {
+  user: object | null;
+  error: boolean | unknown;
+  success: boolean;
+  loading: boolean;
+  message: string | null;
 }
 
-export const userSlice = createSlice({
-    name: "user", 
-    initialState,
-    reducers: {
-        resetMessage: (state) => {
-            state.message = null
-        }
+const initialState: IUserIntialState = {
+  user: {},
+  error: false,
+  success: false,
+  loading: false,
+  message: null,
+};
+
+// Get user details
+export const profile = createAsyncThunk(
+  "user/profile",
+  async (user, thunkAPI: any) => {
+    const token = thunkAPI.getState().auth.user.token;
+    const data = await userService.profile(user, token);
+    return data;
+  },
+);
+
+// Update user details
+const updateProfile = createAsyncThunk(
+  "user/update",
+  async (user, thunkAPI: any) => {
+    const token = thunkAPI.getState().auth.user.token;
+    const data = await userService.updateProfile(user, token);
+
+    // Check errors
+    if (data.errors) {
+      return thunkAPI.rejectWithValue(data.erros[0]);
     }
-})
+
+    return data;
+  },
+);
+
+export const userSlice = createSlice({
+  name: "user",
+  initialState,
+  reducers: {
+    resetMessage: (state) => {
+      state.message = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(profile.pending, (state) => {
+        state.loading = true;
+        state.error = false;
+      })
+      .addCase(profile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = true;
+        state.error = false;
+        state.user = action.payload;
+      })
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.error = false;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = true;
+        state.error = false;
+        state.user = action.payload;
+        state.message = "Usuário atualizado com sucesso!";
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.user = null;
+      });
+  },
+});
+
+export const { resetMessage } = userSlice.actions;
+export default userSlice.reducer;

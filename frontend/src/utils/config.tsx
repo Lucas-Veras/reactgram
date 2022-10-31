@@ -7,7 +7,7 @@ export const requestConfig = (
   method: string,
   data: any,
   token = null,
-  image = null,
+  image: null | boolean = null,
 ) => {
   let config: IConfig;
 
